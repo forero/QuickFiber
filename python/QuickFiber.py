@@ -1,8 +1,8 @@
 import FiberAllocation as FA
 import sys, string, os
 
-min_index = sys.argv[1]
-max_index = sys.argv[2]
+min_index = int(sys.argv[1])
+max_index = int(sys.argv[2])
 
 print range(int(min_index), int(max_index))
 

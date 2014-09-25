@@ -17,6 +17,6 @@ objects.healpixelize(n_side)
 tiles.healpixelize(n_side)
 
 #find the available galaxies for the first 20 plates
-for i in range(24*60):
+for i in range(min_index, max_index):
     x, y = FA.find_available_galaxies(fibers, tiles, objects,i)
     print i

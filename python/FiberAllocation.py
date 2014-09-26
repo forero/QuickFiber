@@ -275,8 +275,9 @@ def get_rotation_matrix(theta_final=0.0, phi_final=0.0):
 
 def radec2xy(object_ra, object_dec, tile_ra, tile_dec):
     """
-    Returns the x,y coordinats of an object located with object_ra, object_dec
-    from a sist
+    Returns the x,y coordinats of an object on the plate.
+    It takes as an input the ra,dec coordinates ob the object 
+    and the ra,dec coordinates of the plate's center.
     """
     object_theta = (90.0 - object_dec)*np.pi/180.0
     object_phi = object_ra*np.pi/180.0
@@ -319,51 +320,6 @@ def radec2xy(object_ra, object_dec, tile_ra, tile_dec):
     
     return x,y
     
-def radec2xy(object_ra, object_dec, tile_ra, tile_dec):
-    """
-    Returns the x,y coordinats of an object located with object_ra, object_dec
-    from a sist
-    """
-    object_theta = (90.0 - object_dec)*np.pi/180.0
-    object_phi = object_ra*np.pi/180.0
-    o_hat0 = np.sin(object_theta)*np.cos(object_phi)
-    o_hat1 = np.sin(object_theta)*np.sin(object_phi)
-    o_hat2 = np.cos(object_theta)
-    
-    tile_theta = (90.0 - tile_dec)*np.pi/180.0
-    tile_phi = tile_ra*np.pi/180.0
-    t_hat0 = np.sin(tile_theta)*np.cos(tile_phi)
-    t_hat1 = np.sin(tile_theta)*np.sin(tile_phi)
-    t_hat2 = np.cos(tile_theta)
-    
-    
-    #we make a rotation on o_hat, so that t_hat ends up aligned with 
-    #the unit vector along z. This is composed by a first rotation around z
-    #of an angle pi/2 - phi and a second rotation around x by an angle theta, 
-    #where theta and phi are the angles describin t_hat.
-    
-    costheta = t_hat2
-    sintheta = np.sqrt(1.0-costheta*costheta) + 1E-10
-    cosphi = t_hat0/sintheta
-    sinphi = t_hat1/sintheta
-    
-    #First rotation, taking into account that cos(pi/2 -phi) = sin(phi) and sin(pi/2-phi)=cos(phi)
-    n_hat0 = sinphi*o_hat0 - cosphi*o_hat1
-    n_hat1 = cosphi*o_hat0 + sinphi*o_hat1
-    n_hat2 = o_hat2
-    
-    #Second rotation
-    nn_hat0 = n_hat0
-    nn_hat1 = costheta*n_hat1 - sintheta*n_hat2
-    nn_hat2 = sintheta*n_hat1 + costheta*n_hat2
-    
-    #Now find the radius on the plate
-    theta = np.sqrt(nn_hat0*nn_hat0 + nn_hat1*nn_hat1)
-    radius = plate_dist(theta)
-    x = radius * nn_hat0/theta
-    y = radius * nn_hat1/theta
-    
-    return x,y
     
 def find_available_galaxies(fiber_set, tile_set, object_set, 
                             tile_ID, filename="available_galaxies"):

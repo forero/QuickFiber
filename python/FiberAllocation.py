@@ -62,7 +62,28 @@ class ObjectCatalog(object):
             self.ID = np.arange(n_points)
             self.priority = np.int_(np.random.random(n_points)*5)
             self.maxnumobs = np.int_(np.random.random(n_points)*3)
-        
+
+        if((filein!=False) & (random==True)): # this is the format from Lado Shamushia
+            data = np.loadtxt(filein)
+            nobs = np.size(data[:,0]) + 1
+            self.ra = data[:,0]
+            self.dec = data[:,1]
+            self.zz = data[:,2]
+            self.tag = data[:,3]
+            self.ID = np.arange(nobs)
+            self.priority = np.ones(nobs)
+            self.maxnumobs = np.ones(nobs)
+            tags = [1,2,3,4,5,6]
+            prio = [2.0,2.0,3.0,4.0,2.0,3.0]
+            nobs = [5,1,2,1,1,1]
+            
+            for i in range(6):
+                index = np.where(self.tag==tags[i])
+                index = index[0]
+                self.priority[index] = prio[i]
+                self.maxnumobs[index] = nobs[i]
+
+
         #make the initization of new arrays describing the geometry of the problem
         self.theta = (90.0-self.dec)*np.pi/180.0
         self.phi = self.ra*np.pi/180.0
@@ -148,7 +169,7 @@ class FiberSetup(object):
             self.x = data[:,3]
             self.y = data[:,4]
             self.z = data[:,5]
-        self.plate_radius = plate_radius*np.pi/180.0
+        self.plate_radius = plate_radius*np.pi/180.0 #in radians
         self.patrol_radius_min = patrol_radius_min
         self.patrol_radius_max = patrol_radius_max
     

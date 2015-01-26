@@ -219,6 +219,10 @@ class TilingSetup(object):
         
    
 
+
+
+
+
 def plate_dist(theta):
         """
         Returns the radial distance on the plate (mm) given the angle (radians).
@@ -230,6 +234,19 @@ def plate_dist(theta):
             radius = theta*radius + p[i]
         return radius
 
+def plate_angle(radius):
+    """
+    Returns the angular distance on the plate (radians) given the radial distance to the plate.
+    Finds the value using the Newton-Raphson method.
+    """
+    angle_guess = 0.0
+    dist_guess = plate_dist(angle_guess) - radius
+    while(np.fabs(dist_guess)>1E-8):
+        derivative = (plate_dist(angle_guess+1E-5) - plate_dist(angle_guess))/1E-5
+        delta_guess = - dist_guess/derivative
+        angle_guess = angle_guess + delta_guess        
+        dist_guess = plate_dist(angle_guess) - radius
+    return angle_guess
 
 def get_rotation_matrix(theta_final=0.0, phi_final=0.0):
     """
@@ -293,6 +310,66 @@ def get_rotation_matrix(theta_final=0.0, phi_final=0.0):
         status = 0
     return status, rot_matrix
 
+def xy2radec(object_x, object_y, tile_ra, tile_dec):
+    """
+    Returns the RA,dec coordinates of an object with position x,y on 
+    the plate centered on tile_ra, tile_dec.
+    
+    It takes as an input the x,y coordinates of the object 
+    and the ra,dec coordinates of the plate's center.
+    """
+    
+    # This is the final position of the tile vector, which starts parallel to  z_hat.
+    tile_theta = (90.0 - tile_dec)*np.pi/180.0
+    tile_phi = tile_ra*np.pi/180.0
+    t_hat0 = np.sin(tile_theta)*np.cos(tile_phi)
+    t_hat1 = np.sin(tile_theta)*np.sin(tile_phi)
+    t_hat2 = np.cos(tile_theta)
+    
+    #define sin and cos of the angles for the final tile vector.
+    costheta = t_hat2
+    sintheta = np.sqrt(1.0-costheta*costheta) + 1E-10
+    cosphi = t_hat0/sintheta
+    sinphi = t_hat1/sintheta
+    
+    # Find the initial position of the object vector when the tile starts parallel to z_hat
+    radius = np.sqrt(object_x*object_x + object_y*object_y)
+    
+    if(radius>0.0):
+        object_theta = plate_angle(radius)
+        object_phi = np.arccos(object_x/radius)        
+        if(object_y<0):
+            object_phi = 2.0*np.pi - object_phi
+        o_hat0 = np.sin(object_theta)*np.cos(object_phi)
+        o_hat1 = np.sin(object_theta)*np.sin(object_phi)
+        o_hat2 = np.cos(object_theta)
+    else:
+        o_hat0 = 0.0
+        o_hat1 = 0.0
+        o_hat2 = 1.0
+        
+    # First rotation, around x by an angle -theta.
+    n_hat0 = o_hat0
+    n_hat1 = costheta*o_hat1 + sintheta*o_hat2
+    n_hat2 = -sintheta*o_hat1 + costheta*o_hat2
+    
+    #Second rotation around z_hat by -(pi/2-phi), taking into account that cos(pi/2 -phi) = sin(phi) and sin(pi/2-phi)=cos(phi)
+    nn_hat0 = sinphi*n_hat0 + cosphi*n_hat1
+    nn_hat1 = -cosphi*n_hat0 + sinphi*n_hat1
+    nn_hat2 = n_hat2
+    
+    #convert from unit vectors to ra, dec
+    object_theta = np.arccos(nn_hat2)  
+    object_phi = np.arccos(nn_hat0/np.sqrt(1.0-nn_hat2*nn_hat2) + 1E-10)
+    if(nn_hat1<0):
+        object_phi = 2.0*np.pi - object_phi
+    
+    object_dec = 90.0 - (180.0/np.pi)*object_theta
+    object_ra = object_phi*180.0/np.pi
+  
+    
+    return object_ra, object_dec
+
 
 def radec2xy(object_ra, object_dec, tile_ra, tile_dec):
     """
@@ -340,6 +417,8 @@ def radec2xy(object_ra, object_dec, tile_ra, tile_dec):
     y = radius * nn_hat1/theta
     
     return x,y
+
+
     
     
 def find_available_galaxies(fiber_set, tile_set, object_set, 
